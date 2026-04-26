@@ -91,13 +91,21 @@ Registrasi user baru.
 ---
 
 ### POST `/auth/login`
-Login user.
+Login user. Dilindungi Google reCAPTCHA v3 — FE wajib kirim `recaptcha_token` di setiap request.
+
+> **Alur reCAPTCHA v3 (invisible):**
+> 1. FE load script reCAPTCHA dari Google
+> 2. FE execute `grecaptcha.execute(SITE_KEY, { action: 'login' })` → dapat token
+> 3. FE kirim token ke BE via field `recaptcha_token`
+> 4. BE verifikasi token ke Google API → dapat `score` (0.0–1.0)
+> 5. Jika `score < 0.5` → tolak login, return 403
 
 **Request Body:**
 ```json
 {
   "email": "budi@example.com",
-  "password": "min8chars"
+  "password": "min8chars",
+  "recaptcha_token": "03AGdBq25SxXT..."
 }
 ```
 
@@ -116,6 +124,39 @@ Login user.
   "message": "Login berhasil"
 }
 ```
+
+**Response 403 (bot terdeteksi):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Verifikasi gagal, terdeteksi aktivitas mencurigakan",
+  "error_code": "CAPTCHA_FAILED"
+}
+```
+
+**Response 400 (token tidak dikirim):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "recaptcha_token wajib diisi",
+  "error_code": "CAPTCHA_MISSING"
+}
+```
+
+> **Catatan untuk Halim (BE):**
+> - Simpan `RECAPTCHA_SECRET_KEY` di environment variable, jangan di-hardcode
+> - Verifikasi ke: `POST https://www.google.com/recaptcha/api/siteverify`
+> - Payload: `secret=SECRET_KEY&response=recaptcha_token`
+> - Threshold score: `>= 0.5` dianggap manusia, `< 0.5` ditolak
+> - Selalu verifikasi `action == "login"` dari response Google untuk mencegah token reuse
+
+> **Catatan untuk Geral (FE):**
+> - Daftarkan domain di [Google reCAPTCHA Console](https://www.google.com/recaptcha/admin)
+> - Simpan `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` di `.env.local`
+> - Token expired dalam 2 menit — generate ulang tiap kali user klik tombol Login
+> - Jangan tampilkan error teknis ke user, cukup: "Verifikasi gagal, coba lagi"
 
 ---
 
