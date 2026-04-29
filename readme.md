@@ -113,8 +113,8 @@ Before changing any implementation, read these documents:
    - agent workflows, boundaries, stop conditions, and handoff rules
 4. `frontend/CLAUDE.md`
    - coding conventions, tech stack rules, and UI/data guardrails
-5. `frontend/autosup.md`
-   - product vision, pain points, and visual/UX direction
+5. `frontend/autosup-complete.md`
+   - product vision, pain points, design prompts per role (3 roles: supplier, distributor, retailer), and visual/UX direction
 6. `frontend/README.md`
    - frontend-specific developer guide
 

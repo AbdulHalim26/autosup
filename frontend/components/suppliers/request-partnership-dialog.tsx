@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Building2, Loader2 } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
+import { LegacyDialog as Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useRequestPartnership, type Supplier } from "@/hooks/useSuppliers";
 

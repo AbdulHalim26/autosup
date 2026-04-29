@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
+import { LegacyDialog as Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteInventoryItem } from "@/hooks/useInventory";
 import type { InventoryItem } from "@/hooks/useInventory";

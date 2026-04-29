@@ -10,15 +10,17 @@ Dokumen ini adalah instruksi level-1 untuk agent yang bekerja di folder `fronten
 Fokus utamanya adalah workflow kerja, batasan, stop conditions, dan cara handoff.
 
 Dokumen pendamping:
+- `frontend/autosup-complete.md`: visi produk, fitur per role, design prompts, framing UX
 - `frontend/CLAUDE.md`: tech stack, coding rules, product conventions
 - `frontend/PRD.md`: scope MVP, behavior produk, user stories
 - `api-contract.md`: source of truth untuk API, roles, enum, dan response shape
 
 ## 1. Tujuan Dokumen
 
-Agent yang bekerja di `frontend/` bertugas membangun dashboard app AUTOSUP berbasis Next.js App Router untuk role:
-- `distributor`
+Agent yang bekerja di `frontend/` bertugas membangun dashboard app AUTOSUP berbasis Next.js App Router untuk **3 role login**:
 - `supplier`
+- `distributor`
+- `retailer`
 
 Scope agent ini adalah frontend application layer, bukan seluruh sistem. Agent tidak menjadi pemilik logic backend, database, AI inference, atau blockchain execution.
 
@@ -35,7 +37,11 @@ Saat ada keputusan implementasi, gunakan urutan berikut:
    - scope Core MVP
    - behavior produk
    - acceptance criteria
-3. `frontend/CLAUDE.md`
+3. `frontend/autosup-complete.md`
+   - visi produk
+   - design prompts
+   - framing UX (saat behavior tidak diatur eksplisit di PRD)
+4. `frontend/CLAUDE.md`
    - tech stack
    - coding conventions
    - UI and data guardrails
@@ -43,6 +49,7 @@ Saat ada keputusan implementasi, gunakan urutan berikut:
 Jika ada konflik:
 - API contract menang untuk kontrak data
 - PRD menang untuk keputusan scope dan behavior produk
+- autosup-complete.md menang untuk visi & framing UX
 - CLAUDE menang untuk preferensi implementasi frontend
 
 ## 3. Workflow Agent
@@ -55,7 +62,7 @@ Gunakan workflow default ini:
 - Baca task user dengan teliti
 - Temukan file dan route yang relevan
 - Cek `frontend/PRD.md` dan `api-contract.md` sebelum membuat asumsi
-- Cek apakah task menyentuh role `distributor`, `supplier`, atau keduanya
+- Cek apakah task menyentuh role `supplier`, `distributor`, `retailer`, atau kombinasi
 
 ### Align
 - Cocokkan task dengan scope Core MVP
@@ -82,7 +89,7 @@ Gunakan workflow default ini:
 
 Sebelum mulai coding, agent wajib memeriksa hal-hal berikut:
 - Apakah fitur ini masuk Core MVP di `frontend/PRD.md`
-- Role mana yang terdampak: `distributor`, `supplier`, atau keduanya
+- Role mana yang terdampak: `supplier`, `distributor`, `retailer`, atau kombinasi
 - Endpoint dan response shape apa yang relevan di `api-contract.md`
 - Apakah perubahan ini menyentuh:
   - route App Router
@@ -100,6 +107,7 @@ Agent frontend tidak boleh:
 - mengubah role yang sudah fixed:
   - `supplier`
   - `distributor`
+  - `retailer`
 - mengubah enum status yang sudah fixed:
   - inventory: `in_stock`, `low_stock`, `out_of_stock`
   - orders: `pending`, `processing`, `shipping`, `delivered`, `cancelled`
@@ -143,7 +151,7 @@ Aturan validasi:
 ## 8. UI/UX Guardrails
 
 Semua output frontend harus:
-- role-aware untuk `distributor` dan `supplier`
+- role-aware untuk `supplier`, `distributor`, dan `retailer`
 - terasa seperti dashboard operasional, bukan landing page
 - menghindari `alert()`
 - menyiapkan loading state
@@ -152,8 +160,9 @@ Semua output frontend harus:
 - menyiapkan happy path state
 
 Prinsip tambahan:
-- CTA distributor tidak boleh muncul di workspace supplier
-- action supplier tidak boleh muncul di workspace distributor
+- CTA distributor tidak boleh muncul di workspace supplier/retailer
+- action supplier tidak boleh muncul di workspace distributor/retailer
+- distributor-only modules (Retailers CRM, Credit Line, Logistics) tidak boleh muncul di workspace retailer/supplier
 - trust layer seperti partnership, escrow, dan reputation ditampilkan sebagai hasil sistem
 - jangan memaksa wallet flow untuk use case MVP biasa
 

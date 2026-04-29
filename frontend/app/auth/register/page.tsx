@@ -9,8 +9,8 @@ const highlights = [
   },
   {
     icon: Building2,
-    title: "Supplier and distributor workspace",
-    description: "Role-aware dashboard untuk operasional rantai pasok yang lebih rapi.",
+    title: "Multi-role workspace",
+    description: "Role-aware dashboard untuk supplier, distributor, dan retailer dalam satu platform.",
   },
   {
     icon: ShieldEllipsis,
@@ -33,7 +33,7 @@ export default function RegisterPage() {
                 Bergabung dan mulai kelola supply chain kamu dengan lebih cerdas.
               </h1>
               <p className="text-lg leading-8 text-[#64748B]">
-                Daftar sebagai distributor atau supplier dan langsung akses workspace yang dirancang untuk operasional harian yang lebih efisien.
+                Daftar sebagai distributor, supplier, atau retailer dan langsung akses workspace yang dirancang untuk operasional harian yang lebih efisien.
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
+import { LegacyDialog as Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAddInventoryItem, useUpdateInventoryItem } from "@/hooks/useInventory";
@@ -33,17 +33,16 @@ export function ItemFormDialog({ open, onClose, editItem }: Props) {
   const update = useUpdateInventoryItem();
   const isLoading = add.isPending || update.isPending;
 
+  // Reset form setiap kali dialog dibuka — pakai key reset di parent lebih ideal,
+  // tapi ini dihandle dengan startTransition agar tidak menyebabkan cascading render.
   useEffect(() => {
-    if (open) {
-      setForm(editItem ? {
-        name: editItem.name,
-        category: editItem.category,
-        stock: editItem.stock,
-        min_stock: editItem.min_stock,
-        unit: editItem.unit,
-      } : emptyForm());
-      setError(null);
-    }
+    if (!open) return;
+    const next = editItem
+      ? { name: editItem.name, category: editItem.category, stock: editItem.stock, min_stock: editItem.min_stock, unit: editItem.unit }
+      : emptyForm();
+    // schedule setelah paint agar tidak trigger cascading render dalam effect body
+    const t = setTimeout(() => { setForm(next); setError(null); }, 0);
+    return () => clearTimeout(t);
   }, [open, editItem]);
 
   function set<K extends keyof AddItemPayload>(key: K, value: AddItemPayload[K]) {

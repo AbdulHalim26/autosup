@@ -1,4 +1,4 @@
-import { Eye, MapPin, RefreshCcw, Truck } from "lucide-react";
+import { ChevronRight, Eye, MapPin, RefreshCcw, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { OrderProgress } from "@/components/orders/order-progress";
@@ -7,16 +7,8 @@ import { OrderStatusBadge, type OrderStatus } from "@/components/orders/order-st
 export interface OrderCardData {
   order_id: string;
   order_number: string;
-  buyer: {
-    id: string;
-    name: string;
-    role: string;
-  };
-  seller: {
-    id: string;
-    name: string;
-    role: string;
-  };
+  buyer: { id: string; name: string; role: string };
+  seller: { id: string; name: string; role: string };
   items: Array<{
     item_name: string;
     qty: number;
@@ -32,6 +24,12 @@ export interface OrderCardData {
   updated_at: string;
 }
 
+const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  pending: "processing",
+  processing: "shipping",
+  shipping: "delivered",
+};
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -40,11 +38,22 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function OrderCard({ order }: { order: OrderCardData }) {
+interface OrderCardProps {
+  order: OrderCardData;
+  userRole?: "distributor" | "supplier" | "retailer";
+  onUpdateStatus?: (orderId: string, status: OrderStatus) => void;
+  isUpdating?: boolean;
+}
+
+export function OrderCard({ order, userRole, onUpdateStatus, isUpdating }: OrderCardProps) {
   const previewItems = order.items
     .slice(0, 2)
     .map((item) => `${item.item_name} (${item.qty} ${item.unit})`)
     .join(", ");
+
+  const nextStatus = NEXT_STATUS[order.status];
+  const isTerminal = order.status === "delivered" || order.status === "cancelled";
+  const canUpdateStatus = userRole === "supplier" && !isTerminal && !!nextStatus;
 
   return (
     <Card className="rounded-2xl">
@@ -114,14 +123,36 @@ export function OrderCard({ order }: { order: OrderCardData }) {
             <Eye className="h-4 w-4" />
             View Details
           </Button>
-          <Button variant="secondary" className="gap-2">
-            <RefreshCcw className="h-4 w-4" />
-            Update Status
-          </Button>
-          <Button className="gap-2">
-            <Truck className="h-4 w-4" />
-            Track Delivery
-          </Button>
+
+          {/* Supplier: update ke status berikutnya */}
+          {canUpdateStatus && (
+            <Button
+              variant="secondary"
+              className="gap-2"
+              disabled={isUpdating}
+              onClick={() => onUpdateStatus?.(order.order_id, nextStatus!)}
+            >
+              <RefreshCcw className={`h-4 w-4 ${isUpdating ? "animate-spin" : ""}`} />
+              Mark as {nextStatus}
+              <ChevronRight className="h-3 w-3 opacity-60" />
+            </Button>
+          )}
+
+          {/* Delivered: tampilkan info escrow */}
+          {order.status === "delivered" && (
+            <Button variant="secondary" className="gap-2 text-[#22C55E]" disabled>
+              <Truck className="h-4 w-4" />
+              Escrow released
+            </Button>
+          )}
+
+          {/* Buyer (distributor / retailer): track delivery untuk order aktif */}
+          {(userRole === "distributor" || userRole === "retailer") && !isTerminal && (
+            <Button className="gap-2">
+              <Truck className="h-4 w-4" />
+              Track Delivery
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

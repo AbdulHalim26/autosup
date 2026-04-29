@@ -4,22 +4,69 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bot,
   Boxes,
+  CreditCard,
+  Handshake,
   LayoutDashboard,
+  LineChart,
   LogOut,
+  Map,
   PackageSearch,
+  Settings,
   Sparkles,
+  TrendingUp,
+  TruckIcon,
+  Users,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore, type UserRole } from "@/store/useAuthStore";
 import { useLogout } from "@/hooks/useAuth";
 
-const navigation = [
-  { href: "/dashboard/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/inventory", label: "Inventory", icon: Boxes },
-  { href: "/dashboard/orders", label: "Orders", icon: PackageSearch },
-  { href: "/dashboard/suppliers", label: "Suppliers", icon: BarChart3 },
-];
+function getNavigation(role?: UserRole) {
+  const base = [
+    { href: "/dashboard/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/inventory", label: "Inventory", icon: Boxes },
+    { href: "/dashboard/orders", label: "Orders", icon: PackageSearch },
+  ];
+
+  if (role === "distributor") {
+    return [
+      ...base,
+      { href: "/dashboard/suppliers", label: "Suppliers", icon: BarChart3 },
+      { href: "/dashboard/partnerships", label: "Partnerships", icon: Handshake },
+      { href: "/dashboard/retailers", label: "Retailers", icon: Users },
+      { href: "/dashboard/credit", label: "Credit Line", icon: CreditCard },
+      { href: "/dashboard/payment", label: "Payment", icon: Wallet },
+      { href: "/dashboard/logistics", label: "Logistics", icon: TruckIcon },
+      { href: "/dashboard/ai-agents", label: "AI Agents", icon: Bot },
+      { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
+      { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ];
+  }
+
+  if (role === "retailer") {
+    return [
+      ...base,
+      { href: "/dashboard/suppliers", label: "Vendors", icon: BarChart3 },
+      { href: "/dashboard/payment", label: "Payment", icon: Wallet },
+      { href: "/dashboard/ai-agents", label: "AI Agents", icon: Bot },
+      { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
+      { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ];
+  }
+
+  // supplier
+  return [
+    ...base,
+    { href: "/dashboard/suppliers", label: "Distributors", icon: BarChart3 },
+    { href: "/dashboard/demand", label: "Demand Intel", icon: TrendingUp },
+    { href: "/dashboard/geo", label: "Geo Mapping", icon: Map },
+    { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
+    { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  ];
+}
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,7 +74,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { logout } = useLogout();
 
   const workspaceLabel =
-    user?.role === "supplier" ? "Supplier Workspace" : "Distributor Workspace";
+    user?.role === "supplier"
+      ? "Supplier Workspace"
+      : user?.role === "retailer"
+        ? "Retailer Workspace"
+        : "Distributor Workspace";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -48,7 +99,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* Nav */}
           <nav className="mt-8 space-y-1">
-            {navigation.map((item) => {
+            {getNavigation(user?.role).map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (

@@ -7,29 +7,35 @@ Tujuannya agar implementasi konsisten dengan PRD, API contract, dan arsitektur t
 
 ## 1. Project Context
 
-AUTOSUP adalah platform supply chain untuk dua role utama:
-- `distributor`
+AUTOSUP adalah platform supply chain untuk **3 role login utama** (3-tier supply chain):
 - `supplier`
+- `distributor`
+- `retailer`
 
-Frontend ini dipakai untuk dashboard operasional yang responsif, cepat, dan mudah dipakai oleh UMKM. Fokus Core MVP saat ini:
-- authentication dan role-based access
-- dashboard monitoring
-- inventory management
-- suppliers dan partnership
-- orders dan tracking
-- AI restock recommendation
+Frontend ini dipakai untuk dashboard operasional yang responsif, cepat, dan mudah dipakai oleh UMKM. Fokus Core MVP (v3.0) sudah disamakan dengan `frontend/autosup-complete.md`:
+
+**Distributor (15 fitur):**
+- authentication & role-based access · dashboard monitoring · inventory management · supplier stock visibility · suppliers (discovery & procurement) · partnership management · orders & tracking · retailer management (CRM) · credit line management · payment · logistics · analytics · AI agents · settings
+
+**Supplier (8 fitur):**
+- authentication & role-based access · dashboard monitoring · inventory/products · demand intelligence · geo mapping demand · distributor management · orders incoming · analytics · settings
+
+**Retailer (9 fitur — BARU di v3.0):**
+- authentication & role-based access · dashboard monitoring · inventory management · orders (purchase to vendor) · suppliers/vendors discovery · partnership · payments · AI agents · analytics · settings
+
+Detail acceptance criteria per fitur di `frontend/PRD.md` Section 3A (distributor), 3B (supplier), dan 3C (retailer).
 
 Source of truth produk dan API:
+- `frontend/autosup-complete.md`
 - `frontend/PRD.md`
 - `api-contract.md`
-- `frontend/autosup.md`
 
 Jika ada konflik:
 1. `api-contract.md` menang untuk endpoint, role, status enum, dan response shape
 2. `frontend/PRD.md` menang untuk scope MVP dan behavior produk
-3. `frontend/autosup.md` menang untuk visi produk dan framing UX
+3. `frontend/autosup-complete.md` menang untuk visi produk dan framing UX
 
-Catatan penting: `frontend/autosup.md` mencakup visi produk lengkap termasuk future phase (analytics, credit line, logistics, payment, dll). Untuk Core MVP, hanya implementasi fitur yang listed di `frontend/PRD.md` Section 3. Design prompts dan fitur lainnya di autosup.md hanya untuk referensi future phase.
+Sejak v3.0, scope MVP sudah merupakan union dari fitur autosup-complete.md dan PRD.md (3 role lengkap). Item yang masih *out of scope* tercatat di `PRD.md` Section 4 (auto-order penuh tanpa konfirmasi user, wallet-native flow di end-user surface, multi-warehouse advanced allocation algorithm, native mobile app, multi-currency selain IDR).
 
 ## 2. Tech Stack
 
@@ -70,15 +76,19 @@ Catatan penting: frontend tidak menjadi pemilik logic blockchain. Frontend hanya
 ## 3. Product and UX Rules
 
 ### Role awareness
-- Semua pengalaman harus menyesuaikan role `distributor` atau `supplier`
-- Jangan tampilkan CTA distributor di workspace supplier
-- Jangan tampilkan action supplier di workspace distributor
-- Dashboard, empty state, CTA, dan navigation harus role-aware
+- Semua pengalaman harus menyesuaikan role `supplier`, `distributor`, atau `retailer`
+- Jangan tampilkan CTA distributor di workspace supplier/retailer
+- Jangan tampilkan action supplier di workspace distributor/retailer
+- Jangan tampilkan distributor-only modules (Retailers CRM, Credit Line, Logistics) di workspace retailer/supplier
+- Dashboard, empty state, CTA, dan navigation harus role-aware untuk 3 role
+- `logistics partner` tetap *entitas* yang dikelola distributor (managed via `/logistics/partners`), bukan role login.
+- **Dual-role retailer concept:** distributor punya `/retailers/*` (CRM untuk manage retailer clients-nya). Retailer juga bisa login dengan akun bisnis sendiri (me-reuse endpoint role-aware seperti `/inventory`, `/orders`, `/suppliers`, `/payments`, `/settings`, `/analytics/*`, `/ai/*`). Dua concern co-exist tanpa konflik.
+- Wallet & blockchain interaction tetap backend-driven untuk semua role.
 
 ### MVP boundaries
-- Kerjakan hanya fitur yang masuk Core MVP di `frontend/PRD.md`
-- Jangan menambahkan credit management, geo mapping, analytics lanjutan, retailer management, atau wallet-native flow sebagai fitur utama tanpa instruksi baru
-- AI recommendation di MVP bersifat assistive, bukan auto-order penuh
+- Kerjakan fitur yang masuk Core MVP di `frontend/PRD.md` Section 3A (distributor), 3B (supplier), dan 3C (retailer)
+- Tetap *out of scope*: auto-execute action terminal tanpa konfirmasi user (create order, settle payment, approve credit), wallet-native flow di end-user surface, multi-warehouse advanced allocation, native mobile app, multi-currency selain IDR
+- AI recommendation di MVP bersifat assistive untuk semua agent (Demand Forecast, Auto Restock, Credit Risk, Logistics Optimization, Supplier Recommendation, Price Optimization, Cash Flow Optimizer); BE tetap require manual approval untuk action terminal meski user pilih `auto_execute` di config
 
 ### UX principles
 - Dashboard harus cepat dibaca dan fokus pada tindakan
@@ -151,6 +161,7 @@ Catatan penting: frontend tidak menjadi pemilik logic blockchain. Frontend hanya
 - Gunakan hanya role berikut:
   - `supplier`
   - `distributor`
+  - `retailer`
 - Jangan membuat alias role lain di UI atau data model
 
 ### Inventory
@@ -175,10 +186,63 @@ Catatan penting: frontend tidak menjadi pemilik logic blockchain. Frontend hanya
   - `discover`
 - Partnership accept/reject hanya boleh dilakukan oleh role `supplier`
 - Partnership NFT diperlakukan sebagai metadata hasil backend, bukan action on-chain langsung dari frontend
+- `GET /suppliers/{supplier_id}/stock` hanya bisa dipanggil distributor untuk supplier yang sudah `partner`. Jika 403 `SUPPLIER_NOT_PARTNER`, UI tampilkan CTA request partnership.
 
-### AI output
+### Retailers (distributor CRM)
+- Endpoint `/retailers/*` adalah **distributor-side CRM** untuk manage retailer clients-nya. Tidak berlaku untuk retailer-as-login (lihat subsection berikutnya).
+- Segment enum: `premium` · `regular` · `new`. Status enum: `active` · `inactive` · `high_risk`.
+- Detail retailer include `purchase_history`, `demand_intelligence`, `credit_summary` (opsional).
+
+### Retailer-as-login (role-specific data)
+- Retailer me-reuse endpoint role-aware yang sama dengan distributor/supplier (`/inventory`, `/orders`, `/suppliers`, `/payments`, `/settings`, `/analytics/*`, `/ai/*`); BE filter berdasarkan auth context.
+- Retailer's "supplier" di UI = distributor (atau supplier langsung). Generic terminology — retailer treats whoever supplies them as "supplier/vendor".
+- Retailer's order: `buyer.role = retailer`, `seller.role = distributor | supplier`. Filter `?role=buyer` di `/orders` untuk lihat order yang retailer buat.
+- Retailer dashboard punya field-specific shape: `inventory`, `orders`, `spending` (total_outstanding, monthly_spending, available_credit, upcoming_due_payments, payment_success_rate), `suppliers` (active_partnered, pending_requests, average_reliability_score, avg_delivery_time), `forecast_accuracy_pct`, `ai_insights` (lihat api-contract §6 retailer response).
+- Available credit retailer berasal dari distributor's `/credit/accounts` yang punya retailer tersebut — surfaced di dashboard `spending.available_credit` dan Payment page Credit & Financing panel.
+
+### Credit Line (distributor only)
+- Status enum: `active` · `overdue` · `suspended` · `closed`. Risk level: `low` · `medium` · `high`.
+- Sebelum `POST /credit/accounts`, FE disarankan call `POST /ai/credit-risk` dan tampilkan hasilnya sebagai context.
+- `POST /credit/accounts` adalah action terminal — selalu require konfirmasi user.
+
+### Payment
+- Direction: `incoming` · `outgoing`. Status: `pending` · `paid` · `partial` · `failed` · `refunded`. Method: `bank_transfer` · `e_wallet` · `credit_line` · `escrow_release`.
+- Currency MVP fix ke IDR (Xendit/Midtrans).
+- Escrow status (`held` · `released` · `refunded`) di-surface dari backend di Order Detail dan Payment Detail; jangan compute di FE.
+- `POST /payments/settle` adalah action terminal — selalu require konfirmasi user.
+
+### Logistics (distributor only)
+- Shipment status: `packed` · `dispatched` · `in_transit` · `delivered` · `delayed` · `failed`.
+- Carrier / contract status: `active` · `expiring` · `expired` · `pending`.
+- AI logistics recommendation di-render sebagai banner/badge; user tetap approve manual sebelum apply.
+
+### Analytics
+- Endpoint role-aware via auth context (`/analytics/distributor/*` vs `/analytics/supplier/*`); FE pilih sesuai role aktif.
+- Period query param: `week` · `month` · `quarter`.
+- Render chart pakai library yang sudah dipakai (atau primitive bar/line dari komponen yang ada). Hindari heavy chart lib bila tidak perlu.
+
+### AI Agents
+- Agent name enum: `demand_forecast` · `auto_restock` · `credit_risk` · `logistics_optimization` · `supplier_recommendation` · `price_optimization` · `cash_flow_optimizer`.
+- Status enum: `active` · `paused` · `disabled`. Automation level: `manual_approval` · `auto_with_threshold` · `auto_execute`.
+- **Agent availability per role:**
+  - Distributor: `demand_forecast`, `auto_restock`, `credit_risk`, `logistics_optimization`, `supplier_recommendation`
+  - Supplier: `demand_forecast`
+  - Retailer: `auto_restock`, `demand_forecast`, `supplier_recommendation`, `price_optimization`, `cash_flow_optimizer`
+- Live recommendation feed di `GET /ai/agents/recommendations` sudah include `actionable_link` — FE cukup pakai link tersebut sebagai navigasi.
+
+### Settings
+- Endpoint role-aware. Field business form berbeda per role:
+  - Distributor: `warehouse_locations`, `service_regions`
+  - Supplier: `production_facilities`
+  - Retailer: `industry_type`, `branch_locations`, `billing_subscription`, `team_members`, `compliance_docs`
+- FE pilih form schema sesuai role.
+- 2FA pakai TOTP. FE tampilkan QR + secret saat enable; user input TOTP code saat disable.
+- Credentials integration jangan ditampilkan ulang setelah save (write-only field).
+
+### AI output (umum)
 - Asumsikan hasil AI sudah divalidasi backend dan dikirim sebagai JSON siap pakai
-- Frontend cukup merender urgency, recommendation text, suggested quantity, dan suggested supplier
+- Frontend cukup merender urgency, recommendation text, suggested context, dan link aksi
+- Untuk action terminal, selalu route via flow konfirmasi (jangan execute otomatis dari recommendation card)
 
 ## 6. File and Architecture Conventions
 
@@ -189,12 +253,46 @@ Gunakan struktur ini sebagai arah kerja:
 - `store/` untuk Zustand stores
 - `lib/` untuk API client, utilities, constants, dan shared helpers
 
+Layout direktori target untuk fitur MVP v3.0:
+
+**Routes shared (semua role pakai, role-aware via auth context):**
+- `app/auth/login/`, `app/auth/register/`
+- `app/dashboard/layout.tsx` — shell sidebar role-aware (3 role config)
+- `app/dashboard/dashboard/` — dashboard role-aware (catatan: nested path; pertimbangkan refactor ke `app/dashboard/page.tsx` saat ada keputusan)
+- `app/dashboard/inventory/`
+- `app/dashboard/orders/`
+- `app/dashboard/suppliers/` — distributor & retailer (vendor list)
+- `app/dashboard/payment/` — distributor (incoming + outgoing) & retailer (outgoing)
+- `app/dashboard/analytics/` — semua role, data berbeda
+- `app/dashboard/ai-agents/` — distributor & retailer (subset agents berbeda)
+- `app/dashboard/settings/`
+
+**Routes shared distributor + retailer:**
+- `app/dashboard/partnership/` — BARU di v3.0, halaman dedicated terpisah dari `suppliers/`. Untuk distributor: kelola partnership ke supplier. Untuk retailer: kelola partnership ke distributor/supplier vendor.
+
+**Routes distributor only:**
+- `app/dashboard/retailers/` — CRM untuk manage retailer clients (≠ retailer-as-login)
+- `app/dashboard/credit/` — credit line yang distributor berikan ke retailer
+- `app/dashboard/logistics/` — shipment & route management
+
+**Routes supplier only:**
+- `app/dashboard/demand/` — Demand Intelligence
+- `app/dashboard/geo/` — Geo Mapping
+- `app/dashboard/distributors/` — mirror Suppliers untuk supplier (kelola distributor partner)
+
+Sidebar menentukan visibility per role; route guard di `dashboard/layout.tsx` blokir akses lintas role.
+
+**Hooks dan store yang diharapkan ada:**
+- `hooks/useAuth.ts`, `useDashboard.ts`, `useInventory.ts`, `useOrders.ts`, `useSuppliers.ts` (sudah ada sebagian)
+- `hooks/useRetailers.ts` (distributor CRM), `useCredit.ts`, `usePayments.ts`, `useLogistics.ts`, `useAnalytics.ts`, `useAiAgents.ts`, `useSettings.ts`, `usePartnership.ts` (planned)
+- `store/useAuthStore.ts` (sudah ada — perlu extend `user.role` untuk include `retailer`)
+
 Konvensi umum:
 - Satu file, satu tanggung jawab utama
 - Nama komponen pakai PascalCase
 - Nama hook pakai `useXxx`
 - Nama store jelas, misalnya `useAuthStore`
-- Jangan campur hardcoded mock besar ke dalam komponen; taruh di file mock terpisah bila perlu
+- Jangan campur hardcoded mock besar ke dalam komponen; taruh di `lib/mocks/<feature>.ts` bila perlu
 
 ## 7. Implementation Preferences for AI
 
@@ -222,11 +320,13 @@ Saat membuat form:
 ## 8. Non-Goals
 
 AI yang bekerja di frontend tidak boleh:
-- menciptakan flow blockchain langsung dari browser tanpa kebutuhan jelas
-- menambah fitur di luar Core MVP hanya karena terlihat menarik
+- menciptakan flow blockchain langsung dari browser tanpa kebutuhan jelas (mint, transfer, swap manual oleh user)
+- mengeksekusi action terminal otomatis tanpa konfirmasi user (create order, settle payment, approve credit, reroute shipment) meskipun config AI agent `auto_execute`
+- menambah fitur di luar Core MVP v2.0 hanya karena terlihat menarik (lihat `PRD.md` Section 4 untuk daftar yang masih out of scope)
 - mengubah kontrak API seenaknya
 - memakai `alert()` untuk error handling
 - membuat UI yang terasa seperti landing page marketing
+- menambah currency selain IDR di MVP awal
 
 ## 9. Definition of Good Output
 

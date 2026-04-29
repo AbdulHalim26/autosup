@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ShieldCheck, AlertCircle, Building2, Truck } from "lucide-react";
+import { ArrowRight, ShieldCheck, AlertCircle, Building2, Truck, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ const ROLES: { value: UserRole; label: string; description: string; icon: typeof
   {
     value: "distributor",
     label: "Distributor",
-    description: "Beli dari supplier, kelola stok dan restock",
+    description: "Beli dari supplier, kelola stok dan order ke retailer",
     icon: Truck,
   },
   {
@@ -22,6 +22,12 @@ const ROLES: { value: UserRole; label: string; description: string; icon: typeof
     label: "Supplier",
     description: "Jual produk, terima dan proses order dari distributor",
     icon: Building2,
+  },
+  {
+    value: "retailer",
+    label: "Retailer",
+    description: "Kelola stok operasional dan beli dari vendor pilihan",
+    icon: ShoppingBag,
   },
 ];
 
@@ -61,7 +67,7 @@ export function RegisterForm() {
           {/* Role selector */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-[#0F172A]">Role bisnis</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {ROLES.map(({ value, label, description, icon: Icon }) => (
                 <button
                   key={value}
