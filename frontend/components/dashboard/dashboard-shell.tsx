@@ -50,6 +50,7 @@ function getNavigation(role?: UserRole) {
     return [
       ...base,
       { href: "/dashboard/suppliers", label: "Vendors", icon: BarChart3 },
+      { href: "/dashboard/partnerships", label: "Partnership", icon: Handshake },
       { href: "/dashboard/payment", label: "Payment", icon: Wallet },
       { href: "/dashboard/ai-agents", label: "AI Agents", icon: Bot },
       { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
@@ -60,7 +61,7 @@ function getNavigation(role?: UserRole) {
   // supplier
   return [
     ...base,
-    { href: "/dashboard/suppliers", label: "Distributors", icon: BarChart3 },
+    { href: "/dashboard/distributors", label: "Distributors", icon: Handshake },
     { href: "/dashboard/demand", label: "Demand Intel", icon: TrendingUp },
     { href: "/dashboard/geo", label: "Geo Mapping", icon: Map },
     { href: "/dashboard/analytics", label: "Analytics", icon: LineChart },
