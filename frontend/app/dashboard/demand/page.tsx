@@ -9,6 +9,7 @@ import {
   TrendingUp 
 } from "lucide-react";
 import { InsightCard } from "@/components/dashboard/insight-card";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDemandIntelligence } from "@/hooks/useDemand";
@@ -21,7 +22,7 @@ function formatNumber(num: number) {
 export default function DemandPage() {
   const role = useAuthStore((s) => s.user?.role);
   const [period, setPeriod] = useState<"weekly" | "monthly">("monthly");
-  const { data, isLoading } = useDemandIntelligence(period);
+  const { data, isLoading, isError, refetch } = useDemandIntelligence(period);
 
   if (role !== "supplier") {
     return (
@@ -86,11 +87,19 @@ export default function DemandPage() {
         </section>
       )}
 
+      {/* Error state */}
+      {isError && !isLoading && (
+        <section>
+          <PageErrorState message="Gagal memuat data demand intelligence" onRetry={() => refetch()} />
+        </section>
+      )}
+
       {/* Main content */}
+      {!isError && (
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-[#0F172A]">Overall Demand Trend</h2>
-          
+
           <Card className="rounded-2xl">
             <CardContent className="pt-6">
               {isLoading ? (
@@ -203,6 +212,7 @@ export default function DemandPage() {
           </Card>
         </div>
       </section>
+      )}
     </main>
   );
 }
