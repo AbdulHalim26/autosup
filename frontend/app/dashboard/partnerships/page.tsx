@@ -1,20 +1,43 @@
 "use client";
 
 import { useMemo } from "react";
-import { Handshake, FileClock, Percent, ShieldCheck, TrendingUp } from "lucide-react";
+import { ExternalLink, Gem, Handshake, FileClock, Percent, ShieldCheck, TrendingUp } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import { SupplierCard } from "@/components/suppliers/supplier-card";
 import { SuppliersTrustPanel } from "@/components/suppliers/suppliers-trust-panel";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
-import { usePartnershipsSummary } from "@/hooks/usePartnerships";
-import { useSuppliers } from "@/hooks/useSuppliers";
+import { usePartnershipsSummary, usePartnershipNFT } from "@/hooks/usePartnerships";
+import { useSuppliers, type Supplier } from "@/hooks/useSuppliers";
 import { useAuthStore } from "@/store/useAuthStore";
+
+function PartnershipNFTBadge({ supplierId }: { supplierId: string }) {
+  const { data: nft, isLoading } = usePartnershipNFT(supplierId);
+  if (isLoading || !nft) return null;
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-[#DDD6FE] bg-[#F5F3FF] px-4 py-3">
+      <Gem className="mt-0.5 h-4 w-4 shrink-0 text-[#7C3AED]" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-[#7C3AED]">{nft.token_name}</p>
+        <p className="mt-0.5 font-mono text-xs text-[#64748B] truncate">{nft.mint_address}</p>
+      </div>
+      <a
+        href={nft.explorer_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-xs font-medium text-[#7C3AED] hover:underline shrink-0"
+      >
+        Explorer <ExternalLink className="h-3 w-3" />
+      </a>
+    </div>
+  );
+}
 
 export default function PartnershipsPage() {
   const role = useAuthStore((s) => s.user?.role);
   const { data: summaryData } = usePartnershipsSummary();
-  const { data: suppliersData, isLoading: isSuppliersLoading } = useSuppliers({ type: "partner" });
+  const { data: suppliersData, isLoading: isSuppliersLoading, isError: isSuppliersError, refetch: refetchSuppliers } = useSuppliers({ type: "partner" });
 
   const summary = summaryData?.summary;
   const partners = suppliersData?.suppliers ?? [];
@@ -30,12 +53,12 @@ export default function PartnershipsPage() {
     }));
   }, [summaryData?.insights]);
 
-  if (role !== "distributor") {
+  if (role !== "distributor" && role !== "retailer") {
     return (
       <main className="flex h-[80vh] items-center justify-center p-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-[#0F172A]">Akses Ditolak</h2>
-          <p className="mt-2 text-sm text-[#64748B]">Halaman ini khusus untuk Distributor.</p>
+          <p className="mt-2 text-sm text-[#64748B]">Halaman ini khusus untuk Distributor dan Retailer.</p>
         </div>
       </main>
     );
@@ -115,17 +138,24 @@ export default function PartnershipsPage() {
             </div>
           )}
 
-          {!isSuppliersLoading && partners.length === 0 && (
+          {isSuppliersError && !isSuppliersLoading && (
+            <PageErrorState message="Gagal memuat data partnership" onRetry={() => refetchSuppliers()} />
+          )}
+
+          {!isSuppliersLoading && !isSuppliersError && partners.length === 0 && (
             <div className="flex h-32 flex-col items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white">
               <span className="text-sm font-medium text-[#0F172A]">Belum ada active partnership</span>
               <span className="mt-1 text-xs text-[#64748B]">Cari supplier di halaman Suppliers.</span>
             </div>
           )}
 
-          {!isSuppliersLoading && partners.length > 0 && (
+          {!isSuppliersLoading && !isSuppliersError && partners.length > 0 && (
             <div className="grid gap-4">
               {partners.map((supplier) => (
-                <SupplierCard key={supplier.supplier_id} supplier={supplier} />
+                <div key={supplier.supplier_id} className="space-y-2">
+                  <SupplierCard supplier={supplier} />
+                  <PartnershipNFTBadge supplierId={supplier.supplier_id} />
+                </div>
               ))}
             </div>
           )}
