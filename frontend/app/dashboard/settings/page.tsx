@@ -14,6 +14,7 @@ import {
   Smartphone,
   User,
 } from "lucide-react";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,10 +58,14 @@ function formatDate(iso: string) {
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
 
 function ProfileTab() {
-  const { data, isLoading } = useProfileSettings();
+  const { data, isLoading, isError, refetch } = useProfileSettings();
   const updateProfile = useUpdateProfile();
   const [form, setForm] = useState({ full_name: "", phone: "" });
   const [saved, setSaved] = useState(false);
+
+  if (isError) {
+    return <PageErrorState message="Gagal memuat data profil" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !data) {
     return (
@@ -150,9 +155,13 @@ function ProfileTab() {
 
 function BusinessTab() {
   const role = useAuthStore((s) => s.user?.role);
-  const { data, isLoading } = useBusinessSettings(role);
+  const { data, isLoading, isError, refetch } = useBusinessSettings(role);
   const updateBusiness = useUpdateBusiness();
   const [saved, setSaved] = useState(false);
+
+  if (isError) {
+    return <PageErrorState message="Gagal memuat data bisnis" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !data) {
     return (
@@ -306,9 +315,13 @@ function BusinessTab() {
 // ─── Notifications Tab ────────────────────────────────────────────────────────
 
 function NotificationsTab() {
-  const { data, isLoading } = useNotificationSettings();
+  const { data, isLoading, isError, refetch } = useNotificationSettings();
   const updateNotifications = useUpdateNotifications();
   const [saved, setSaved] = useState(false);
+
+  if (isError) {
+    return <PageErrorState message="Gagal memuat pengaturan notifikasi" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !data) {
     return (
@@ -403,7 +416,7 @@ function NotificationsTab() {
 // ─── Security Tab ─────────────────────────────────────────────────────────────
 
 function SecurityTab() {
-  const { data: sessions, isLoading: loadingSessions } = useSessionsSettings();
+  const { data: sessions, isLoading: loadingSessions, isError: isSessionsError, refetch: refetchSessions } = useSessionsSettings();
   const enable2FA = useEnable2FA();
   const disable2FA = useDisable2FA();
   const [totpCode, setTotpCode] = useState("");
@@ -510,6 +523,8 @@ function SecurityTab() {
             <div className="flex h-24 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-[#94A3B8]" />
             </div>
+          ) : isSessionsError ? (
+            <PageErrorState message="Gagal memuat data sesi" onRetry={() => refetchSessions()} />
           ) : (
             <div className="space-y-3">
               {sessions?.map((s) => (
@@ -552,7 +567,11 @@ function SecurityTab() {
 // ─── Integrations Tab ─────────────────────────────────────────────────────────
 
 function IntegrationsTab() {
-  const { data, isLoading } = useIntegrationsSettings();
+  const { data, isLoading, isError, refetch } = useIntegrationsSettings();
+
+  if (isError) {
+    return <PageErrorState message="Gagal memuat data integrasi" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !data) {
     return (

@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -414,7 +415,7 @@ export default function RetailersPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading } = useRetailers({
+  const { data, isLoading, isError, refetch } = useRetailers({
     search: search || undefined,
     segment: segment || undefined,
     status: status || undefined,
@@ -529,13 +530,20 @@ export default function RetailersPage() {
 
         {/* List */}
         <section>
+          {isError && !isLoading && (
+            <PageErrorState
+              message="Gagal memuat data retailers"
+              onRetry={() => refetch()}
+            />
+          )}
+
           <Card className="rounded-2xl">
             <CardContent className="pt-6">
               {isLoading ? (
                 <div className="flex h-[300px] items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin text-[#94A3B8]" />
                 </div>
-              ) : retailers.length === 0 ? (
+              ) : isError ? null : retailers.length === 0 ? (
                 <div className="flex h-[300px] flex-col items-center justify-center gap-3">
                   <Building2 className="h-10 w-10 text-[#CBD5E1]" />
                   <p className="text-sm text-[#64748B]">Belum ada retailer ditemukan.</p>

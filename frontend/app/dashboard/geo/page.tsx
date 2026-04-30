@@ -8,6 +8,7 @@ import {
   Loader2 
 } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGeoDemand } from "@/hooks/useGeoDemand";
@@ -28,7 +29,7 @@ function formatNumber(num: number) {
 
 export default function GeoMappingPage() {
   const role = useAuthStore((s) => s.user?.role);
-  const { data, isLoading } = useGeoDemand();
+  const { data, isLoading, isError, refetch } = useGeoDemand();
 
   if (role !== "supplier") {
     return (
@@ -78,11 +79,19 @@ export default function GeoMappingPage() {
         </section>
       )}
 
+      {/* Error state */}
+      {isError && !isLoading && (
+        <section>
+          <PageErrorState message="Gagal memuat data geo mapping" onRetry={() => refetch()} />
+        </section>
+      )}
+
       {/* Main content */}
+      {!isError && (
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-[#0F172A]">Regional Performance Ranking</h2>
-          
+
           <Card className="rounded-2xl">
             <CardContent className="pt-6">
               {isLoading ? (
@@ -175,6 +184,7 @@ export default function GeoMappingPage() {
           </Card>
         </div>
       </section>
+      )}
     </main>
   );
 }

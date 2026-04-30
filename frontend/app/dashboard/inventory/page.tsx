@@ -10,6 +10,7 @@ import { InventoryTable } from "@/components/inventory/inventory-table";
 import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteConfirmDialog } from "@/components/inventory/delete-confirm-dialog";
 import { RestockPanel } from "@/components/inventory/restock-panel";
+import { OrderFormDialog } from "@/components/orders/order-form-dialog";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ export default function InventoryPage() {
   const [status, setStatus] = useState("");
   const [dialog, setDialog] = useState<DialogState>({ type: "closed" });
   const [restock, setRestock] = useState<RestockRecommendation | null>(null);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderPrefill, setOrderPrefill] = useState<{ supplierId?: string; itemName?: string; qty?: number; unit?: string } | undefined>();
 
   const { data, isLoading, isError, refetch } = useInventory({ search, category, status });
   const restockMutation = useRestockRecommendation();
@@ -52,9 +55,14 @@ export default function InventoryPage() {
   }
 
   function handleCreateOrder(rec: RestockRecommendation) {
-    // TODO: pre-fill order form with supplier_id and item_id when orders page is ready
-    console.log("Create order for", rec.item_name, "from", rec.suggested_supplier?.name);
+    setOrderPrefill({
+      supplierId: rec.suggested_supplier?.supplier_id,
+      itemName: rec.item_name,
+      qty: rec.suggested_qty,
+      unit: rec.suggested_unit,
+    });
     setRestock(null);
+    setOrderOpen(true);
   }
 
   const summary = data?.summary ?? { total_items: 0, low_stock_count: 0, out_of_stock_count: 0 };
@@ -168,6 +176,12 @@ export default function InventoryPage() {
         open={dialog.type === "delete"}
         onClose={closeDialog}
         item={dialog.type === "delete" ? dialog.item : null}
+      />
+
+      <OrderFormDialog
+        open={orderOpen}
+        onClose={() => setOrderOpen(false)}
+        prefill={orderPrefill}
       />
     </main>
   );

@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { PageErrorState } from "@/components/dashboard/page-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -341,7 +342,7 @@ export default function CreditPage() {
   const [showOpen, setShowOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  const { data, isLoading } = useCreditAccounts({
+  const { data, isLoading, isError, refetch } = useCreditAccounts({
     status: filterStatus || undefined,
   });
 
@@ -448,13 +449,20 @@ export default function CreditPage() {
 
         {/* Accounts list */}
         <section className="space-y-3">
+          {isError && !isLoading && (
+            <PageErrorState
+              message="Gagal memuat data credit line"
+              onRetry={() => refetch()}
+            />
+          )}
+
           {isLoading ? (
             <Card className="rounded-2xl">
               <CardContent className="flex h-[300px] items-center justify-center pt-6">
                 <Loader2 className="h-5 w-5 animate-spin text-[#94A3B8]" />
               </CardContent>
             </Card>
-          ) : accounts.length === 0 ? (
+          ) : !isError && accounts.length === 0 ? (
             <Card className="rounded-2xl">
               <CardContent className="flex h-[300px] flex-col items-center justify-center gap-3 pt-6">
                 <CreditCard className="h-10 w-10 text-[#CBD5E1]" />
@@ -464,7 +472,7 @@ export default function CreditPage() {
                 </Button>
               </CardContent>
             </Card>
-          ) : (
+          ) : !isError ? (
             accounts.map((account) => (
               <Card key={account.credit_account_id} className="rounded-2xl">
                 <CardHeader className="pb-3">
@@ -562,7 +570,7 @@ export default function CreditPage() {
                 </CardContent>
               </Card>
             ))
-          )}
+          ) : null}
         </section>
       </main>
 
