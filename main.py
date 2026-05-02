@@ -119,7 +119,7 @@ def error_response(message: str):
 # ==========================================
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-flash-latest')
 
 @app.get("/")
 def home():
