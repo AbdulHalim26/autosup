@@ -12,8 +12,24 @@ from pydantic import BaseModel
 from typing import Any, Optional
 
 # ==========================================
-# 1. PYDANTIC MODELS (UDAH DI-INGGRIS-IN)
+# 1. PYDANTIC MODELS 
 # ==========================================
+class RegisterReq(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    role: str
+    business_name: str
+    phone: str
+
+class LoginReq(BaseModel):
+    email: str
+    password: str
+    recaptcha_token: Optional[str] = None
+
+class RefreshReq(BaseModel):
+    refresh_token: str
+
 class OrderPatchStatus(BaseModel):
     status: str    
 
@@ -108,6 +124,82 @@ model = genai.GenerativeModel('models/gemini-1.5-flash')
 @app.get("/")
 def home():
     return success_response(data={"status": "AUTOSUP Backend Aktif", "engine": "Gemini 1.5 Flash"}, message="Server is running")
+
+# ==========================================
+# --- FITUR AUTENTIKASI (AUTH) ---
+# ==========================================
+@app.post("/auth/register")
+def register_user(req: RegisterReq):
+    try:
+        # Daftar via Supabase Auth dan simpan data tambahan (role, nama) di user_metadata
+        res = supabase.auth.sign_up({
+            "email": req.email,
+            "password": req.password,
+            "options": {
+                "data": {
+                    "full_name": req.full_name,
+                    "role": req.role,
+                    "business_name": req.business_name,
+                    "phone": req.phone
+                }
+            }
+        })
+
+        if not res.user:
+            return error_response("Gagal mendaftarkan user.")
+
+        data_return = {
+            "user_id": res.user.id,
+            "email": res.user.email,
+            "role": req.role,
+            "access_token": res.session.access_token if res.session else None
+        }
+        return success_response(data=data_return, message="Registrasi berhasil")
+    except Exception as e:
+        return error_response(f"Gagal Register: {str(e)}")
+
+@app.post("/auth/login")
+def login_user(req: LoginReq):
+    try:
+        # Login via Supabase Auth
+        res = supabase.auth.sign_in_with_password({
+            "email": req.email,
+            "password": req.password
+        })
+
+        # Tarik data tambahan yang tadi disimpen pas register
+        user_meta = res.user.user_metadata
+        data_return = {
+            "user_id": res.user.id,
+            "full_name": user_meta.get("full_name", ""),
+            "role": user_meta.get("role", "distributor"),
+            "business_name": user_meta.get("business_name", ""),
+            "access_token": res.session.access_token,
+            "refresh_token": res.session.refresh_token
+        }
+        return success_response(data=data_return, message="Login berhasil")
+    except Exception as e:
+        return error_response("Login gagal. Cek kembali email dan password Anda.")
+
+@app.post("/auth/refresh")
+def refresh_token(req: RefreshReq):
+    try:
+        res = supabase.auth.refresh_session(req.refresh_token)
+        data_return = {
+            "access_token": res.session.access_token,
+            "refresh_token": res.session.refresh_token
+        }
+        return success_response(data=data_return, message="Token berhasil diperbarui")
+    except Exception as e:
+        return error_response(f"Gagal refresh token: {str(e)}")
+
+@app.post("/auth/logout")
+def logout_user():
+    try:
+        supabase.auth.sign_out()
+        return success_response(message="Logout berhasil")
+    except Exception as e:
+        return error_response(f"Gagal logout: {str(e)}")
 
 # ==========================================
 # --- FITUR INVENTORY MANAJEMEN ---
